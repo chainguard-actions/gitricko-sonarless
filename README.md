@@ -1,0 +1,1 @@
+# gitricko-sonarless
