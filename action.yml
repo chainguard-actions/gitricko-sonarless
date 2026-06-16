@@ -1,0 +1,61 @@
+name: "Sonarless Code Scan"
+description: "SonarQube Scan GitHub Action without a dedicated hosted SonarQube Server"
+author: "gitricko"
+
+inputs:
+  sonar-project-name:
+    description: "SonarQube Project Name"
+    required: false
+    default: ${{github.event.repository.name}}
+  sonar-project-key:
+    description: "SonarQube Project Key"
+    required: false
+    default: ${{github.event.repository.name}}
+  sonar-source-path:
+    description: "SonarQube Source Path from Git Root"
+    required: false
+  sonar-metrics-path:
+    description: "SonarQube Metrics JSON Path from Git Root"
+    required: false
+  sonar-instance-port:
+    description: "SonarQube Instance Port"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Docker Deps
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "$ACTION_PATH/makefile.sh" docker-deps-get
+        "$ACTION_PATH/makefile.sh" sonar-ext-get
+      shell: bash
+
+    - name: Scanning
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        SONAR_PROJECT_NAME: ${{inputs.sonar-project-name}}
+        SONAR_PROJECT_KEY: ${{inputs.sonar-project-key}}
+        SONAR_SOURCE_PATH: ${{inputs.sonar-source-path}}
+        SONAR_METRICS_PATH: ${{inputs.sonar-metrics-path}}
+        SONAR_INSTANCE_PORT: ${{ inputs.sonar-instance-port }}
+        SONAR_GITROOT: ${{ github.workspace }}
+      run: "$ACTION_PATH/makefile.sh" scan
+      shell: bash
+
+    - name: Scan Results
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        SONAR_PROJECT_NAME: ${{inputs.sonar-project-name}}
+        SONAR_PROJECT_KEY: ${{inputs.sonar-project-key}}
+        SONAR_SOURCE_PATH: ${{inputs.sonar-source-path}}
+        SONAR_METRICS_PATH: ${{inputs.sonar-metrics-path}}
+        SONAR_INSTANCE_PORT: ${{ inputs.sonar-instance-port }}
+        SONAR_GITROOT: ${{ github.workspace }}
+      run: "$ACTION_PATH/makefile.sh" results
+      shell: bash
+
+branding:
+  icon: "check-circle"
+  color: "green"

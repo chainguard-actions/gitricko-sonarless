@@ -1,0 +1,27 @@
+name: Test basic usage with all inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          sonar-project-name: test-project
+          sonar-project-key: test-project
+          sonar-source-path: .
+          sonar-metrics-path: sonar-metrics.json
+          sonar-instance-port: "9234"
+      - name: Assert metrics file was created
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/sonar-metrics.json" ]; then
+            echo "FAIL: sonar-metrics.json not found"
+            exit 1
+          fi
+          echo "PASS: sonar-metrics.json exists"
+          cat "$GITHUB_WORKSPACE/sonar-metrics.json"

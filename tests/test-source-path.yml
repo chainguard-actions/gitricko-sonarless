@@ -1,0 +1,28 @@
+name: Test with custom sonar-source-path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_EVENT_NAME: push
+      GITHUB_REF: refs/heads/main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create source directory
+        run: mkdir -p "$GITHUB_WORKSPACE/src"
+      - id: action
+        uses: .
+        with:
+          sonar-project-name: test-source-path
+          sonar-project-key: test-source-path
+          sonar-source-path: src
+          sonar-metrics-path: sonar-metrics-src.json
+          sonar-instance-port: "9234"
+      - name: Assert metrics file was created
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/sonar-metrics-src.json" ]; then
+            echo "FAIL: sonar-metrics-src.json not found"
+            exit 1
+          fi
+          echo "PASS: sonar-metrics-src.json exists"
