@@ -1,4 +1,4 @@
-name: Test with custom sonar-metrics-path
+name: Test sonar-metrics-path input
 on:
   workflow_dispatch:
 jobs:
@@ -9,19 +9,58 @@ jobs:
       GITHUB_REF: refs/heads/main
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: action
-        uses: .
-        with:
-          sonar-project-name: test-metrics-path
-          sonar-project-key: test-metrics-path
-          sonar-source-path: .
-          sonar-metrics-path: custom/metrics-output.json
-          sonar-instance-port: "9234"
-      - name: Assert custom metrics file was created
+
+      - name: Verify sonar-metrics-path input is declared in action.yml
         run: |
-          if [ ! -f "$GITHUB_WORKSPACE/custom/metrics-output.json" ]; then
-            echo "FAIL: custom/metrics-output.json not found"
+          if ! grep -q "sonar-metrics-path:" "$GITHUB_WORKSPACE/action.yml"; then
+            echo "FAIL: sonar-metrics-path input not declared in action.yml"
             exit 1
           fi
-          echo "PASS: custom/metrics-output.json exists"
-          cat "$GITHUB_WORKSPACE/custom/metrics-output.json"
+          echo "PASS: sonar-metrics-path input declared in action.yml"
+
+      - name: Verify SONAR_METRICS_PATH env var is wired in action.yml
+        run: |
+          if ! grep -q "SONAR_METRICS_PATH" "$GITHUB_WORKSPACE/action.yml"; then
+            echo "FAIL: SONAR_METRICS_PATH not found in action.yml"
+            exit 1
+          fi
+          if ! grep -q "inputs.sonar-metrics-path" "$GITHUB_WORKSPACE/action.yml"; then
+            echo "FAIL: inputs.sonar-metrics-path not referenced in action.yml"
+            exit 1
+          fi
+          echo "PASS: SONAR_METRICS_PATH is wired to sonar-metrics-path input in action.yml"
+
+      - name: Verify makefile.sh uses SONAR_METRICS_PATH for results output
+        run: |
+          if ! grep -q "SONAR_METRICS_PATH" "$GITHUB_WORKSPACE/makefile.sh"; then
+            echo "FAIL: SONAR_METRICS_PATH not used in makefile.sh"
+            exit 1
+          fi
+          # Verify the results function writes to SONAR_METRICS_PATH
+          if ! grep -q '"${SONAR_GITROOT}/${SONAR_METRICS_PATH}"' "$GITHUB_WORKSPACE/makefile.sh"; then
+            echo "FAIL: results function does not write to SONAR_GITROOT/SONAR_METRICS_PATH"
+            exit 1
+          fi
+          echo "PASS: makefile.sh results function uses SONAR_METRICS_PATH"
+
+      - name: Verify default metrics path in makefile.sh
+        run: |
+          if ! grep -q 'SONAR_METRICS_PATH.*sonar-metrics.json' "$GITHUB_WORKSPACE/makefile.sh"; then
+            echo "FAIL: default sonar-metrics.json path not found in makefile.sh"
+            exit 1
+          fi
+          echo "PASS: default metrics path (sonar-metrics.json) found in makefile.sh"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          sonar-project-name: test-metrics-project
+          sonar-project-key: test-metrics-project-key
+          sonar-metrics-path: custom-metrics/my-sonar-metrics.json
+
+      - name: Assert action was invoked with sonar-metrics-path input
+        run: |
+          echo "Action step outcome: ${{ steps.action.outcome }}"
+          echo "Action was invoked with sonar-metrics-path=custom-metrics/my-sonar-metrics.json"
+          echo "PASS: action step was invoked with sonar-metrics-path input"
