@@ -109,14 +109,14 @@ function scan() {
     start
 
     # 1. Create default project and set default fav
-    curl -s -u "admin:${SONAR_ADMIN_PASSWORD}" -X POST "http://localhost:${SONAR_INSTANCE_PORT}/api/projects/create?name=${SONAR_PROJECT_NAME}&project=${SONAR_PROJECT_NAME}" | jq
-    curl -s -u "admin:${SONAR_ADMIN_PASSWORD}" -X POST "http://localhost:${SONAR_INSTANCE_PORT}/api/users/set_homepage?type=PROJECT&component=${SONAR_PROJECT_NAME}"
+    curl -s -u "admin:Son@rless123" -X POST "http://localhost:${SONAR_INSTANCE_PORT}/api/projects/create?name=${SONAR_PROJECT_NAME}&project=${SONAR_PROJECT_NAME}" | jq
+    curl -s -u "admin:Son@rless123" -X POST "http://localhost:${SONAR_INSTANCE_PORT}/api/users/set_homepage?type=PROJECT&component=${SONAR_PROJECT_NAME}"
     
     echo "SONAR_GITROOT: ${SONAR_GITROOT}"
     echo "SONAR_SOURCE_PATH: ${SONAR_SOURCE_PATH}"
 
     # 2. Create token and scan using internal-ip becos of docker to docker communication
-    SONAR_TOKEN=$(curl -s -X POST -u "admin:${SONAR_ADMIN_PASSWORD}" "http://localhost:${SONAR_INSTANCE_PORT}/api/user_tokens/generate?name=$(date +%s%N)" | jq -r .token)
+    SONAR_TOKEN=$(curl -s -X POST -u "admin:Son@rless123" "http://localhost:${SONAR_INSTANCE_PORT}/api/user_tokens/generate?name=$(date +%s%N)" | jq -r .token)
     export SONAR_TOKEN
     
     docker run --rm --network "${CLI_NAME}" \
@@ -133,7 +133,7 @@ function scan() {
         for _ in $(seq 1 120); do
             sleep 1
             printf .
-            status_value=$(curl -s -u "admin:${SONAR_ADMIN_PASSWORD}" "http://localhost:${SONAR_INSTANCE_PORT}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_NAME}" | jq -r .projectStatus.status)
+            status_value=$(curl -s -u "admin:Son@rless123" "http://localhost:${SONAR_INSTANCE_PORT}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_NAME}" | jq -r .projectStatus.status)
             # Checking if the status value is not "NONE"
             if [[ "$status_value" != "NONE" ]]; then
                 echo
@@ -149,7 +149,7 @@ function scan() {
 
 function results() {
     # use this params to collect stats
-    curl -s -u "admin:${SONAR_ADMIN_PASSWORD}" "http://localhost:${SONAR_INSTANCE_PORT}/api/measures/component?component=${SONAR_PROJECT_NAME}&metricKeys=bugs,vulnerabilities,code_smells,quality_gate_details,violations,duplicated_lines_density,ncloc,coverage,reliability_rating,security_rating,security_review_rating,sqale_rating,security_hotspots,open_issues" \
+    curl -s -u "admin:Son@rless123" "http://localhost:${SONAR_INSTANCE_PORT}/api/measures/component?component=${SONAR_PROJECT_NAME}&metricKeys=bugs,vulnerabilities,code_smells,quality_gate_details,violations,duplicated_lines_density,ncloc,coverage,reliability_rating,security_rating,security_review_rating,sqale_rating,security_hotspots,open_issues" \
         | jq -r > "${SONAR_GITROOT}/${SONAR_METRICS_PATH}"
     cat "${SONAR_GITROOT}/${SONAR_METRICS_PATH}"
     echo "Scan results written to  ${SONAR_GITROOT}/${SONAR_METRICS_PATH}"

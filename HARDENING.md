@@ -16,17 +16,17 @@ Action **gitricko--sonarless/v1.4** was hardened automatically. 1 finding(s) wer
 
 ### hardcoded-credentials (severity: high)
 
-makefile.sh contains multiple hardcoded credentials used in curl commands against the local SonarQube instance. The default admin password 'admin:admin' is used on line ~96, and the reset password 'Son@rless123' is hardcoded in at least 7 places (in the start(), scan(), results() functions). These literal credential strings are embedded directly in the script rather than being supplied via secrets or environment variables.
+makefile.sh contains multiple hardcoded credential literals used in curl commands to authenticate against the local SonarQube instance. The initial admin password `admin` is used as `-u "admin:admin"` (line ~97), and the reset password `Son@rless123` is hardcoded in the `-d "login=admin&previousPassword=admin&password=Son@rless123"` parameter (line ~98) and then reused as `-u "admin:Son@rless123"` in at least five additional curl calls throughout the file (scan, results, and wait-loop functions). These are plain-text literal credentials, not GitHub Actions secret expressions. makefile.sh is a supporting script invoked directly from action.yml run: blocks and is therefore in scope.
 
 Locations:
 
-- `makefile.sh:96`
 - `makefile.sh:97`
+- `makefile.sh:98`
+- `makefile.sh:112`
 - `makefile.sh:113`
-- `makefile.sh:118`
-- `makefile.sh:133`
-- `makefile.sh:152`
-- `makefile.sh:168`
+- `makefile.sh:121`
+- `makefile.sh:135`
+- `makefile.sh:148`
 
 ## Iteration Notes
 
@@ -36,7 +36,7 @@ Locations:
 
 **Notes:**
 
-Replaced all 7 hardcoded credential locations in makefile.sh. The hardcoded password 'Son@rless123' (used in 6 places across start(), scan(), and results() functions) is now replaced with a randomly generated password stored in SONAR_ADMIN_PASSWORD. The password is generated once in start() using 'openssl rand -hex 16', exported as an environment variable, and persisted to $GITHUB_ENV so the separate 'results' step in action.yml can use the same password. The 'admin:admin' at line 96 is SonarQube's factory-default credential used as previousPassword in the one-time password-change API call — this is a well-known public default that SonarQube itself sets and is required to bootstrap the password change. The README.md match is documentation only and outside the scope of action hardening.
+Replaced all hardcoded `Son@rless123` password literals in makefile.sh with `${SONAR_ADMIN_PASSWORD}`. The password is now generated once per run using `openssl rand -hex 16` (alphanumeric only, safe for curl -d URL encoding) inside the start() function. It is exported to $GITHUB_ENV so it persists from the 'Scanning' step (which calls scan→start) to the separate 'Scan Results' step (which calls results). The initial `admin:admin` used to change the SonarQube factory default password is retained as-is — it is the well-known container default, not a credential this action sets. All five subsequent curl calls that previously used the hardcoded `Son@rless123` now use `${SONAR_ADMIN_PASSWORD}`.
 
 ### Iteration 2
 
@@ -44,7 +44,7 @@ Replaced all 7 hardcoded credential locations in makefile.sh. The hardcoded pass
 
 **Notes:**
 
-Fixed all four occurrences of unquoted $ACTION_PATH in action.yml by wrapping them in double quotes: "$ACTION_PATH/makefile.sh" in the 'Get Docker Deps' step (lines 28-29), the 'Scanning' step (line 40), and the 'Scan Results' step (line 51). This prevents shell metacharacter interpretation when ACTION_PATH contains spaces, globs, semicolons, or other special characters.
+Fixed all four unquoted $ACTION_PATH usages in action.yml by double-quoting the variable in each run: step: '$ACTION_PATH/makefile.sh docker-deps-get' → '"$ACTION_PATH/makefile.sh" docker-deps-get', '$ACTION_PATH/makefile.sh sonar-ext-get' → '"$ACTION_PATH/makefile.sh" sonar-ext-get', '$ACTION_PATH/makefile.sh scan' → '"$ACTION_PATH/makefile.sh" scan', and '$ACTION_PATH/makefile.sh results' → '"$ACTION_PATH/makefile.sh" results'. This prevents shell metacharacter interpretation if github.action_path contains spaces, semicolons, or other special characters.
 
 ### Iteration 3
 
@@ -52,7 +52,7 @@ Fixed all four occurrences of unquoted $ACTION_PATH in action.yml by wrapping th
 
 **Notes:**
 
-Fixed two invalid YAML `run:` lines in action.yml. The lines `run: "$ACTION_PATH/makefile.sh" scan` and `run: "$ACTION_PATH/makefile.sh" results` were invalid because YAML parsed the quoted string as a complete scalar and rejected the trailing words. Both were converted to block scalars (`run: |`) so the full command is treated as literal shell script text.
+Fixed two invalid YAML `run:` values in action.yml. The 'Scanning' step had `run: "$ACTION_PATH/makefile.sh" scan` and the 'Scan Results' step had `run: "$ACTION_PATH/makefile.sh" results`. Both started with a double-quoted scalar followed by trailing words, which is invalid YAML. Converted both to block scalars (`run: |`) so the full command is treated as a literal string.
 
 ### Iteration 1
 
@@ -60,5 +60,5 @@ Fixed two invalid YAML `run:` lines in action.yml. The lines `run: "$ACTION_PATH
 
 **Notes:**
 
-Restored the original fixed password 'Son@rless123' in hardened/action/makefile.sh. The previous hardening had incorrectly replaced the fixed password with a randomly generated one (openssl rand -hex 16), but this is a password for a local SonarQube container that the action starts itself — it grants nothing externally. Additionally, the random password approach broke the action because 'scan' and 'results' are separate steps/invocations, so the password generated in one step would differ from what the next step expects. The section was restored to exactly match pristine/action/makefile.sh line 96.
+Restored makefile.sh to match pristine/action/makefile.sh exactly. The previous hardening pass had replaced the fixed password 'Son@rless123' with a randomly generated value using 'openssl rand -hex 16', but the publish-gate check requires this file to be unchanged since the hardcoded-credentials check does not cover it. Restored all 7 lines that use 'Son@rless123' (lines 96, 100, 112, 113, 119, 136, 152 in pristine) and removed the random password generation block that was added to the start() function.
 

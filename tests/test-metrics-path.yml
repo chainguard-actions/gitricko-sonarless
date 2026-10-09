@@ -10,51 +10,46 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Verify makefile.sh handles SONAR_METRICS_PATH env var
+      - name: Verify sonar-metrics-path is declared in action.yml
         run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
-          # Verify the default metrics path is set in makefile.sh
-          if ! grep -q 'SONAR_METRICS_PATH' "$ACTION_DIR/makefile.sh"; then
-            echo "FAIL: SONAR_METRICS_PATH not found in makefile.sh"
+          if ! grep -q "sonar-metrics-path:" "$GITHUB_WORKSPACE/action.yml"; then
+            echo "FAIL: sonar-metrics-path not declared in action.yml"
             exit 1
           fi
-          echo "PASS: SONAR_METRICS_PATH is referenced in makefile.sh"
+          echo "PASS: sonar-metrics-path declared in action.yml"
 
-      - name: Verify sonar-metrics-path input is declared in action.yml
+      - name: Verify SONAR_METRICS_PATH env var is wired in action.yml
         run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
-          if ! grep -q 'sonar-metrics-path:' "$ACTION_DIR/action.yml"; then
-            echo "FAIL: sonar-metrics-path input not declared in action.yml"
+          if ! grep -q "SONAR_METRICS_PATH" "$GITHUB_WORKSPACE/action.yml"; then
+            echo "FAIL: SONAR_METRICS_PATH not wired in action.yml"
             exit 1
           fi
-          echo "PASS: sonar-metrics-path input declared in action.yml"
+          echo "PASS: SONAR_METRICS_PATH wired in action.yml"
 
-      - name: Verify action.yml wires sonar-metrics-path to SONAR_METRICS_PATH env var
+      - name: Verify makefile.sh uses SONAR_METRICS_PATH for output file
         run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
-          if ! grep -q 'inputs.sonar-metrics-path' "$ACTION_DIR/action.yml"; then
-            echo "FAIL: inputs.sonar-metrics-path not referenced in action.yml"
+          if ! grep -q "SONAR_METRICS_PATH" "$GITHUB_WORKSPACE/makefile.sh"; then
+            echo "FAIL: SONAR_METRICS_PATH not used in makefile.sh"
             exit 1
           fi
-          echo "PASS: sonar-metrics-path input is wired to SONAR_METRICS_PATH in action.yml"
+          echo "PASS: SONAR_METRICS_PATH used in makefile.sh"
 
-      - name: Verify makefile.sh results function writes to SONAR_METRICS_PATH
+      - name: Verify makefile.sh default metrics path is sonar-metrics.json
         run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
-          # The results() function should write to SONAR_GITROOT/SONAR_METRICS_PATH
-          if ! grep -q 'SONAR_METRICS_PATH' "$ACTION_DIR/makefile.sh"; then
-            echo "FAIL: SONAR_METRICS_PATH not used in makefile.sh results function"
+          if ! grep -q "sonar-metrics.json" "$GITHUB_WORKSPACE/makefile.sh"; then
+            echo "FAIL: default metrics path 'sonar-metrics.json' not found in makefile.sh"
             exit 1
           fi
-          echo "PASS: SONAR_METRICS_PATH is used in makefile.sh"
+          echo "PASS: default metrics path 'sonar-metrics.json' found in makefile.sh"
 
       - id: action
         uses: .
         continue-on-error: true
         with:
           sonar-project-name: test-metrics-project
-          sonar-project-key: test-metrics-project
-          sonar-metrics-path: ./custom-metrics-output.json
+          sonar-project-key: test-metrics-project-key
+          sonar-metrics-path: custom-metrics/sonar-output.json
+          sonar-instance-port: "9234"
 
       - name: Assert action was invoked with sonar-metrics-path input
         run: |
