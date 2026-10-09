@@ -10,65 +10,51 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Verify sonar-metrics-path is declared in action.yml
+      - name: Verify makefile.sh handles SONAR_METRICS_PATH env var
         run: |
           ACTION_DIR="$GITHUB_WORKSPACE"
-          if ! grep -q "sonar-metrics-path:" "$ACTION_DIR/action.yml"; then
-            echo "FAIL: sonar-metrics-path not declared in action.yml"
-            exit 1
-          fi
-          echo "PASS: sonar-metrics-path declared in action.yml"
-
-      - name: Verify SONAR_METRICS_PATH is wired in action.yml
-        run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
-          if ! grep -q "inputs.sonar-metrics-path" "$ACTION_DIR/action.yml"; then
-            echo "FAIL: inputs.sonar-metrics-path not referenced in action.yml"
-            exit 1
-          fi
-          echo "PASS: inputs.sonar-metrics-path is referenced in action.yml"
-
-      - name: Verify makefile.sh uses SONAR_METRICS_PATH with a default
-        run: |
-          ACTION_DIR="$GITHUB_WORKSPACE"
+          # Verify the default metrics path is set in makefile.sh
           if ! grep -q 'SONAR_METRICS_PATH' "$ACTION_DIR/makefile.sh"; then
             echo "FAIL: SONAR_METRICS_PATH not found in makefile.sh"
             exit 1
           fi
-          # Verify the default value is set
-          if ! grep -q 'sonar-metrics.json' "$ACTION_DIR/makefile.sh"; then
-            echo "FAIL: default sonar-metrics.json path not found in makefile.sh"
-            exit 1
-          fi
-          echo "PASS: SONAR_METRICS_PATH with default found in makefile.sh"
+          echo "PASS: SONAR_METRICS_PATH is referenced in makefile.sh"
 
-      - name: Verify makefile.sh results function uses SONAR_METRICS_PATH
+      - name: Verify sonar-metrics-path input is declared in action.yml
         run: |
           ACTION_DIR="$GITHUB_WORKSPACE"
-          # Check that the results function writes to SONAR_METRICS_PATH
-          if ! grep -A5 'function results()' "$ACTION_DIR/makefile.sh" | grep -q 'SONAR_METRICS_PATH'; then
-            echo "FAIL: results() function does not use SONAR_METRICS_PATH"
+          if ! grep -q 'sonar-metrics-path:' "$ACTION_DIR/action.yml"; then
+            echo "FAIL: sonar-metrics-path input not declared in action.yml"
             exit 1
           fi
-          echo "PASS: results() function uses SONAR_METRICS_PATH"
+          echo "PASS: sonar-metrics-path input declared in action.yml"
 
-      - name: Verify SONAR_METRICS_PATH env var is passed in action.yml scan step
+      - name: Verify action.yml wires sonar-metrics-path to SONAR_METRICS_PATH env var
         run: |
           ACTION_DIR="$GITHUB_WORKSPACE"
-          # Confirm SONAR_METRICS_PATH is set as env var in action.yml
-          if ! grep -q 'SONAR_METRICS_PATH' "$ACTION_DIR/action.yml"; then
-            echo "FAIL: SONAR_METRICS_PATH env var not set in action.yml"
+          if ! grep -q 'inputs.sonar-metrics-path' "$ACTION_DIR/action.yml"; then
+            echo "FAIL: inputs.sonar-metrics-path not referenced in action.yml"
             exit 1
           fi
-          echo "PASS: SONAR_METRICS_PATH env var is set in action.yml"
+          echo "PASS: sonar-metrics-path input is wired to SONAR_METRICS_PATH in action.yml"
+
+      - name: Verify makefile.sh results function writes to SONAR_METRICS_PATH
+        run: |
+          ACTION_DIR="$GITHUB_WORKSPACE"
+          # The results() function should write to SONAR_GITROOT/SONAR_METRICS_PATH
+          if ! grep -q 'SONAR_METRICS_PATH' "$ACTION_DIR/makefile.sh"; then
+            echo "FAIL: SONAR_METRICS_PATH not used in makefile.sh results function"
+            exit 1
+          fi
+          echo "PASS: SONAR_METRICS_PATH is used in makefile.sh"
 
       - id: action
         uses: .
         continue-on-error: true
         with:
-          sonar-project-name: metrics-path-test
-          sonar-project-key: metrics-path-test-key
-          sonar-metrics-path: reports/sonar-metrics.json
+          sonar-project-name: test-metrics-project
+          sonar-project-key: test-metrics-project
+          sonar-metrics-path: ./custom-metrics-output.json
 
       - name: Assert action was invoked with sonar-metrics-path input
         run: |

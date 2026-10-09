@@ -91,12 +91,13 @@ function start() {
         exit 1
     fi
 
-    # 2. Reset admin password
-    export SONAR_ADMIN_PASSWORD="${SONAR_ADMIN_PASSWORD:-sonarless}"
+    # 2. Reset admin password to sonarless123
     curl -s -X POST -u "admin:admin" \
-        -d "login=admin&previousPassword=admin&password=${SONAR_ADMIN_PASSWORD}" \
+        -d "login=admin&previousPassword=admin&password=Son@rless123" \
         "http://localhost:${SONAR_INSTANCE_PORT}/api/users/change_password"
     echo "Local sonarqube URI: http://localhost:${SONAR_INSTANCE_PORT}" 
+
+    echo "Credentials: admin/Son@rless123"
 
 }
 
