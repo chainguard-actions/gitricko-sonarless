@@ -4,9 +4,9 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 ## Versions
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.4 | [`v1.4`](https://github.com/chainguard-actions/gitricko-sonarless/tree/v1.4) | [`4008feb`](https://github.com/gitricko/sonarless/commit/4008febc6951a959f4b4d4487a7df52128dc76a2) |
+| Version | Tag | Upstream commit | Hardening report |
+|---------|-----|-----------------|------------------|
+| v1.4 | [`v1.4`](https://github.com/chainguard-actions/gitricko-sonarless/tree/v1.4) | [`4008feb`](https://github.com/gitricko/sonarless/commit/4008febc6951a959f4b4d4487a7df52128dc76a2) | [`HARDENING.md`](https://github.com/chainguard-actions/gitricko-sonarless/blob/v1.4/HARDENING.md) |
 
 ## Privacy
 
